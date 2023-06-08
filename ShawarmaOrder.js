@@ -119,7 +119,7 @@ module.exports = class ShwarmaOrder extends Order {
         if (sInput.toLowerCase() == "no") {
           this.stateCur = OrderState.DRINKS;
           aReturn.push(
-            "Would you like a drink with your order? Milkshake, Vietnam Coffee or Coconut Juice? Or type no to finish order."
+            "Would you like a drink with your order? Coke, Juice or Coffee? Or type no to finish order."
           );
         } else if (
           ["vegetable", "shrimp", "tofu"].includes(sInput.toLowerCase())
@@ -139,41 +139,52 @@ module.exports = class ShwarmaOrder extends Order {
 
         break;
       case OrderState.DRINKS:
-        this.stateCur = OrderState.PAYMENT;
-
-        if (sInput.toLowerCase() != "no") {
-          this.sDrinks = sInput;
-          this.total += price.drinks;
-        }
-        aReturn.push("Thank-you for your order of");
-        aReturn.push(`${this.sSize} ${this.sItem} with ${this.sToppings}`);
-        if (this.sSecondItem) {
+        if (
+          sInput.toLowerCase() != "coke" &&
+          sInput.toLowerCase() != "juice" &&
+          sInput.toLowerCase() != "coffee" &&
+          sInput.toLowerCase() != "no"
+        ) {
           aReturn.push(
-            `${this.sSecondSize} ${this.sSecondItem} with ${this.sSecondTopping}`
+            "Please enter a valid drink: Coke, Juice or Coffee. Or no to finish order."
           );
+        } else {
+          this.stateCur = OrderState.PAYMENT;
+
+          if (sInput.toLowerCase() != "no") {
+            this.sDrinks = sInput;
+            this.total += price.drinks;
+          }
+          aReturn.push("Thank-you for your order of");
+          aReturn.push(`${this.sSize} ${this.sItem} with ${this.sToppings}`);
+          if (this.sSecondItem) {
+            aReturn.push(
+              `${this.sSecondSize} ${this.sSecondItem} with ${this.sSecondTopping}`
+            );
+          }
+          if (this.springroll) {
+            aReturn.push(`${this.springroll} spring roll`);
+          }
+          if (this.sDrinks) {
+            aReturn.push(this.sDrinks);
+          }
+          const tax = this.total * 0.13;
+          this.finalPrice = (this.total + tax).toFixed(2);
+          aReturn.push(
+            `Subtotal: $${this.total}\nHST: $${tax}\nTotal: $${this.finalPrice}`
+          );
+          aReturn.push(`Please pay for your order here`);
+          aReturn.push(`${this.sUrl}/payment/${this.sNumber}/`);
         }
-        if (this.springroll) {
-          aReturn.push(`${this.springroll} spring roll`);
-        }
-        if (this.sDrinks) {
-          aReturn.push(this.sDrinks);
-        }
-        const tax = this.total * 0.13;
-        this.finalPrice = (this.total + tax).toFixed(2);
-        aReturn.push(
-          `Subtotal: $${this.total}\nHST: $${tax}\nTotal: $${this.finalPrice}`
-        );
-        aReturn.push(`Please pay for your order here`);
-        aReturn.push(`${this.sUrl}/payment/${this.sNumber}/`);
         break;
       case OrderState.PAYMENT:
         console.log(sInput.purchase_units[0].shipping);
-        let addressLine = `${sInput.purchase_units[0].shipping.address.address_line_1}\n${sInput.purchase_units[0].shipping.address.admin_area_2}\n${sInput.purchase_units[0].shipping.address.admin_area_1}\n${sInput.purchase_units[0].shipping.address.postal_code}`;
+        let shipAddress = `${sInput.purchase_units[0].shipping.address.address_line_1}\n${sInput.purchase_units[0].shipping.address.admin_area_2}\n${sInput.purchase_units[0].shipping.address.admin_area_1}\n${sInput.purchase_units[0].shipping.address.postal_code}`;
         this.isDone(true);
         let d = new Date();
         d.setMinutes(d.getMinutes() + 20);
         aReturn.push(`Your order will be delivered at ${d.toTimeString()}`);
-        aReturn.push(`Order deliver to: ${addressLine}\n`);
+        aReturn.push(`Order deliver to: ${shipAddress}\n`);
         break;
     }
     return aReturn;
