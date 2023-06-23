@@ -2,91 +2,111 @@ const Order = require("./Order");
 
 const OrderState = Object.freeze({
   WELCOMING: Symbol("welcoming"),
-  FOOD: Symbol("food"),
-  LITTER: Symbol("litter"),
+  MENU: Symbol("menu"),
+  AMOUNT: Symbol("amount"),
   EXTRAS: Symbol("extras"),
+  SMENU: Symbol("secondmenu"),
 });
-
+const price = {
+  1: 15,
+  2: 9,
+  3: 20,
+  4: 12,
+  extra: 2.99,
+};
 module.exports = class LockDownEssentials extends Order {
   constructor(sNumber, sUrl) {
     super(sNumber, sUrl);
     this.stateCur = OrderState.WELCOMING;
-    this.sSpecies = "";
-    this.sFood = "";
-    this.sLitter = "";
+    this.sAmount = [];
+    this.sItem = [];
+    this.sTotal = 0;
     this.sExtras = "";
+    this.itemCount = 0;
   }
   handleInput(sInput) {
     let aReturn = [];
     switch (this.stateCur) {
       case OrderState.WELCOMING:
-        this.stateCur = OrderState.FOOD;
+        this.stateCur = OrderState.MENU;
         aReturn.push("Welcome to Hardware Curbside.");
         aReturn.push(`For a list of what we sell tap:`);
         aReturn.push(`${this.sUrl}/payment/${this.sNumber}/`);
-        if (sInput.toLowerCase() == "meow") {
-          this.sSpecies = "cat";
-        } else if (sInput.toLowerCase() == "woof") {
-          this.sSpecies = "dog";
-        } else {
-          this.stateCur = OrderState.WELCOMING;
-          aReturn.push(
-            "Please type YO if you want to shop or NAH if you don't."
-          );
-          break;
-        }
-        aReturn.push("Would you like CANNED or DRY food or NO?");
+        aReturn.push(
+          "We offer \n1. Snow shovels\n2. Garbage containers\n3. Light-bulbs\n4. Household cleaners\nEnter the item number you want to buy."
+        );
         break;
-      case OrderState.FOOD:
-        if (this.sSpecies == "cat") {
-          this.stateCur = OrderState.LITTER;
-          aReturn.push("Would you like kitty litter?");
+      case OrderState.MENU:
+        if (sInput != "1" && sInput != "2" && sInput != "3" && sInput != "4") {
+          aReturn.push("Please enter a correct item number.");
         } else {
+          this.stateCur = OrderState.AMOUNT;
+          this.sItem.push(sInput);
+          aReturn.push("Enter the amount of this item (1-5)");
+        }
+        break;
+      case OrderState.SMENU:
+        if (sInput >= 1 && sInput <= 4) {
+          this.sItem.push(sInput);
+          this.stateCur = OrderState.AMOUNT;
+          aReturn.push("Enter the amount of this item (1-5)");
+        } else if (sInput.toLowerCase() == "no") {
           this.stateCur = OrderState.EXTRAS;
-          aReturn.push("Would you like a TREAT or TOY for your dog?");
-        }
-        if (sInput.toLowerCase() != "no") {
-          this.sFood = sInput;
+          aReturn.push("Would you like a ear-bud?");
+        } else {
+          aReturn.push("Please enter a correct item number or no to checkout");
         }
         break;
-      case OrderState.LITTER:
-        this.stateCur = OrderState.EXTRAS;
-        if (sInput.toLowerCase() != "no") {
-          this.sLitter = "organic kitty litter";
+      case OrderState.AMOUNT:
+        if (sInput < 1 || sInput > 5) {
+          aReturn.push("Please enter a correct amount.");
+        } else {
+          this.sAmount.push(sInput);
+
+          if (this.itemCount < 3) {
+            aReturn.push(
+              "Would you like another item?\n1. Snow shovels\n2. Garbage containers\n3. Light-bulbs\n4. Household cleaners\nOr enter no to checkout"
+            );
+            this.stateCur = OrderState.SMENU;
+            this.itemCount++;
+          } else {
+            this.stateCur = OrderState.EXTRAS;
+            aReturn.push("Would you like a ear-bud?");
+          }
         }
-        aReturn.push("Would you like a TREAT or TOY for your kitty?");
         break;
       case OrderState.EXTRAS:
         if (sInput.toLowerCase() != "no") {
           this.sExtras = sInput;
         }
         aReturn.push("Thank-you for your order of");
-        this.nTotal = 0;
-        if (this.sSpecies == "cat" && this.sFood.toLowerCase() == "canned") {
-          aReturn.push("canned cat food");
-          this.nTotal += 5.99;
-        } else if (this.sSpecies == "cat" && this.sFood.toLowerCase == "dry") {
-          aReturn.push("dry cat food");
-          this.nTotal += 2.99;
-        } else if (
-          this.sSpecies == "dog" &&
-          this.sFood.toLowerCase() == "canned"
-        ) {
-          aReturn.push("canned dog food");
-          this.nTotal += 5.99;
-        } else if (this.sSpecies == "dog" && this.sFood.toLowerCase == "dry") {
-          aReturn.push("dry dog food");
-          this.nTotal += 5.99;
+        for (let i = 0; i < this.sItem.length; i++) {
+          let itemNum = parseInt(this.sItem[i]);
+          let amount = parseInt(this.sAmount[i]);
+          switch (itemNum) {
+            case 1:
+              aReturn.push(`${amount} Snow shovels`);
+              break;
+            case 2:
+              aReturn.push(`${amount} Garbage containers`);
+              break;
+            case 3:
+              aReturn.push(`${amount} Ligh-bulbs`);
+              break;
+            case 4:
+              aReturn.push(`${amount} Household cleaners`);
+              break;
+            default:
+              break;
+          }
+          this.sTotal += price[itemNum] * amount;
         }
-        if (this.sLitter) {
-          aReturn.push(this.sLitter);
-          this.nTotal += 2.99;
-        }
+
         if (this.sExtras) {
           aReturn.push(this.sExtras);
-          this.nTotal += 2.99;
+          this.sTotal += 2.99;
         }
-        aReturn.push(`Your total comes to ${this.nTotal}`);
+        aReturn.push(`Your total comes to $${this.sTotal}`);
         aReturn.push(
           `We will text you from 519-222-2222 when your order is ready or if we have questions.`
         );
